@@ -5,3 +5,4 @@
 - git init
 - git checkout -b sprint1
 - gh repo create
+- mkdir -p .agents docs flux-travail issues tutoriels presentations rapport sprints
