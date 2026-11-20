@@ -32,9 +32,9 @@ Ce projet s'appuie sur la méthode par imitation pour guider l'apprenant pas à 
 ---
 
 ## 3. Stack technique et Architecture
-- **Framework Backend** : Laravel 12 (PHP).
-- **Architecture logicielle** : Architecture en 2 couches (Contrôleur mince -> Classe Service).
-- **Frontend & Vues** : Gabarits Blade responsives, HTML5, CSS3, JavaScript.
+- **Framework Backend** : Laravel 13 (PHP).
+- **Architecture logicielle** : Architecture en 3 couches (MVC).
+- **Frontend & Vues** : Gabarits Blade responsives, HTML5, CSS3, JavaScript, Alpine, Tailwind.
 - **Base de données** : MySQL.
 - **Modélisation** : Diagramme de contexte et cas d'utilisation avec Mermaid.
 - **Gestion de versions & Outils** : Git et GitHub CLI (`gh`).
@@ -72,7 +72,7 @@ Le projet intègre les meilleures pratiques de l'ingénierie logicielle :
 
 ### Cloner le projet
 ```bash
-git clone https://github.com/[votre-compte-github]/blog-des-laureats.git
+git clone https://github.com/MESBAHI-Nour/blog-des-laureats.git
 cd blog-des-laureats
 git checkout sprint1
 ```
