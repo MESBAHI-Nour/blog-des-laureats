@@ -43,7 +43,7 @@ style: |
 ---
 
 <!-- _class: lead -->
-# Restitution du Sprint 1
+# Restitution du Sprint 0
 ### Cadrage, Environnement IA et Consultation d'un Article
 
 - **Apprenant** : Mesbahi Nour
