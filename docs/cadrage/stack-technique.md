@@ -2,153 +2,217 @@
 
 ## Introduction
 
-La stack du **Blog des Lauréats** est choisie en fonction des besoins
-identifiés dans la note de cadrage : performance suffisante pour la
-consultation publique, modularité de l'administration et des contenus,
-sécurité des comptes et des publications, productivité de l'équipe et
-maintenabilité sur plusieurs sprints.
+La stack technique du **Blog des Lauréats** est définie à partir des besoins de la note de cadrage : présenter les réussites et les expériences des anciens apprenants, permettre la consultation des articles publiés, proposer un espace d'administration sécurisé et offrir une lecture confortable sur ordinateur comme sur mobile.
 
-Le projet retient une application web monolithique rendue côté serveur. Cette
-approche est plus proportionnée au périmètre actuel qu'une architecture SPA
-ou distribuée : elle limite la complexité opérationnelle tout en laissant la
-possibilité d'ajouter progressivement des fonctionnalités.
+Le projet retient principalement une **application Laravel rendue côté serveur**, avec une base de données relationnelle. Cette architecture monolithique est adaptée au périmètre actuel : elle rassemble les fonctionnalités dans un même projet, facilite la maintenance et évite d'introduire une architecture distribuée plus complexe que nécessaire.
 
-## 1. Framework Backend (Laravel)
+Pour la consultation nomade, le projet prévoit également une application Android construite avec **NativePHP for Mobile**. L'objectif est de mutualiser autant que possible le code Laravel tout en adaptant l'interface mobile aux composants natifs disponibles.
 
-**Laravel** est retenu pour le backend plutôt qu'un développement PHP sans
-framework ou un framework plus minimaliste.
+## 1. Analyse des exigences techniques
+
+Les exigences suivantes découlent des objectifs du Blog des Lauréats et orientent les choix technologiques.
+
+| Exigence | Besoin du projet | Réponse technique retenue |
+| --- | --- | --- |
+| Performance | Afficher rapidement les listes et les détails des articles | Pagination, requêtes Eloquent ciblées, index MySQL et optimisation des ressources frontend |
+| Modularité | Faire évoluer les articles, les catégories, les profils et l'administration sans mélanger les responsabilités | Architecture MVC Laravel, modèles, contrôleurs, services si nécessaire et migrations |
+| Sécurité | Protéger les comptes, les formulaires et les actions de publication | Authentification, middleware, validation Laravel, protection CSRF, échappement Blade et requêtes paramétrées |
+| Ergonomie responsive | Conserver une lecture confortable sur ordinateur, tablette et téléphone | Tailwind CSS et composants Preline UI testés sur plusieurs tailles d'écran |
+| Accès nomade | Permettre la consultation des articles depuis un appareil Android | Application mobile NativePHP avec un parcours centré sur la lecture |
+| Maintenabilité | Faciliter le travail en équipe et les évolutions par sprint | Git, conventions Laravel, tests automatisés et revue du code |
+
+Ces choix visent une performance suffisante pour le volume et les usages prévus. Ils ne remplacent pas des mesures : le temps de chargement, les requêtes et l'expérience sur mobile devront être vérifiés pendant les tests et la recette.
+
+## 2. Framework Backend & Socle Unifié (Laravel)
+
+**Laravel** est retenu plutôt qu'un développement PHP sans framework ou qu'un framework minimaliste. Il fournit une structure commune pour organiser les fonctionnalités, sécuriser les traitements et accélérer le développement.
 
 ### Arguments comparatifs
 
-| Critère | Laravel | Conséquence pour le projet |
+| Critère | Laravel | Conséquence pour le Blog des Lauréats |
 | --- | --- | --- |
-| Organisation | Architecture MVC élégante séparant modèles, vues et contrôleurs | Les articles, profils, catégories et règles métier restent modulaires et maintenables. |
-| Sécurité | Protections natives contre les requêtes CSRF, l'affichage XSS et l'injection SQL, complétées par la validation et les middleware | L'espace d'administration et les actions de publication peuvent être protégés de manière cohérente. |
-| Évolution du schéma | Migrations déclaratives versionnées | Chaque évolution de la base est traçable, reproductible et partageable entre les environnements. |
-| Productivité | Artisan, injection de dépendances, validation et conventions intégrées | L'équipe livre plus rapidement dans le cadre des sprints sans réimplémenter les fonctions communes. |
+| Organisation | Architecture MVC séparant modèles, vues et contrôleurs | Les données, les traitements et les interfaces sont organisés dans des responsabilités distinctes. |
+| Accès aux données | ORM Eloquent et Query Builder | Les articles, auteurs, catégories et statuts sont manipulés avec des modèles et des relations lisibles. |
+| Interfaces | Moteur de templates Blade | Les pages web sont composées avec des layouts, des composants et des vues réutilisables. |
+| Sécurité | Middleware, validation, protection CSRF et échappement Blade par défaut | Les routes et les formulaires peuvent être protégés de façon cohérente. |
+| Requêtes SQL | Eloquent et Query Builder utilisent des requêtes paramétrées dans les usages habituels | Le risque d'injection SQL est réduit lorsque l'équipe évite de construire du SQL brut avec des entrées utilisateur. |
+| Évolution de la base | Migrations déclaratives et versionnées | Les changements du schéma sont suivis dans Git et peuvent être rejoués dans les environnements du projet. |
+| Tests | Intégration avec PHPUnit et possibilité d'utiliser Pest | Les règles métier et les parcours HTTP peuvent être vérifiés automatiquement. |
+| Productivité | Artisan, conventions, injection de dépendances et outils intégrés | L'équipe évite de réécrire les fonctions communes et peut avancer par incréments. |
 
-Laravel fournit aussi **Eloquent**, **Blade**, les middleware
-d'authentification et l'intégration avec PHPUnit/Pest. Ces composants couvrent
-directement les besoins de gestion de contenus et de contrôle des accès.
+Laravel fournit aussi les middleware nécessaires pour contrôler l'accès aux routes. Par exemple, les routes d'administration peuvent être réservées aux utilisateurs authentifiés et autorisés, tandis que les visiteurs peuvent consulter uniquement les articles publiés.
 
-## 2. Persistance des Données (MySQL)
+La sécurité ne dépend toutefois pas du framework seul. L'équipe doit appliquer la validation côté serveur, vérifier les autorisations dans chaque action sensible, protéger les secrets et éviter l'affichage de HTML non fiable. L'échappement Blade réduit les risques XSS dans les sorties ordinaires, mais l'utilisation de contenu HTML brut exige des précautions supplémentaires.
 
-Le projet utilise **exclusivement MySQL** comme système de gestion de base de
-données relationnelle.
+**Choix retenu :** Laravel constitue le socle backend commun du site web et du projet mobile NativePHP. Les modèles, les règles métier et les traitements compatibles peuvent être mutualisés, sans supposer que toutes les interfaces web seront réutilisées telles quelles sur mobile.
+
+## 3. Persistance des Données (MySQL)
+
+Le projet retient **MySQL** comme système de gestion de base de données relationnelle. Ce choix correspond à la nature des données du blog et aux relations entre les utilisateurs, les auteurs, les articles, les catégories et les statuts de publication.
 
 ### Arguments comparatifs
 
-| Critère | MySQL relationnel | Conséquence pour le projet |
+| Critère | MySQL relationnel | Conséquence pour le Blog des Lauréats |
 | --- | --- | --- |
-| Modélisation | Modélisation relationnelle rigoureuse | Les utilisateurs, articles, catégories, profils et statuts sont représentés par des relations explicites. |
-| Cohérence | Intégrité référentielle avec clés étrangères, contraintes et transactions | Les associations entre un article, son auteur et ses catégories restent valides. |
-| Fiabilité | Garanties ACID pour les moteurs transactionnels adaptés | Les opérations sensibles de création ou de publication ne laissent pas de données partiellement enregistrées. |
-| Intégration PHP | Compatibilité PDO et intégration directe avec Eloquent | Laravel accède à MySQL par une couche standard et exploitable par l'équipe. |
-| Écosystème | Solution industrielle largement documentée | Le déploiement, la maintenance et la montée en compétence sont facilités. |
+| Modélisation | Tables, clés primaires et relations | Les entités du blog sont représentées par un schéma structuré. |
+| Intégrité | Clés étrangères et contraintes | Un article peut être relié à un auteur existant et les associations invalides sont limitées par la base. |
+| Transactions | Moteur InnoDB et propriétés ACID | Les opérations liées peuvent être validées ensemble ou annulées en cas d'échec. |
+| Performance | Index et requêtes SQL | Les recherches, filtres et listes paginées peuvent être optimisés selon les usages réels. |
+| Intégration PHP | Pilote PDO et connexion Laravel | Eloquent communique avec MySQL à travers une interface standard prise en charge par PHP. |
+| Écosystème | Système largement documenté et utilisé | L'équipe dispose d'une documentation et d'outils connus pour le développement et l'exploitation. |
 
-Une base relationnelle unique est préférable ici à une approche NoSQL ou
-polyglotte, car les relations et les règles d'intégrité sont centrales dans le
-domaine. Les recherches, filtres par catégorie et listes paginées pourront
-être optimisés par des requêtes ciblées et des index.
+Avec **InnoDB**, MySQL prend en charge les transactions ACID : atomicité, cohérence, isolation et durabilité. Ces propriétés contribuent à protéger les opérations qui doivent rester cohérentes, par exemple la création d'un article et l'enregistrement de ses relations.
 
-## 3. Couche Présentation & Design (Tailwind CSS / Preline UI)
+Une base relationnelle est plus adaptée qu'une base NoSQL pour le besoin actuel, car les relations et l'intégrité des données sont importantes. Les index seront ajoutés selon les requêtes réellement utilisées, sans indexer toutes les colonnes inutilement.
 
-La présentation combine **Tailwind CSS** et **Preline UI**, intégrés aux vues
-Blade.
+**Choix retenu :** MySQL avec le moteur InnoDB, relié à Laravel par PDO et Eloquent. L'application mobile ne doit pas se connecter directement au serveur MySQL depuis le téléphone : l'accès aux données publiées doit passer par une communication applicative sécurisée avec le backend.
+
+## 4. Couche Présentation & Design (Tailwind CSS / Preline UI)
+
+La partie web utilise **Tailwind CSS** avec **Preline UI**, intégrés aux vues Blade.
 
 ### Arguments comparatifs
 
-| Critère | Tailwind CSS / Preline UI | Conséquence pour le projet |
+| Critère | Tailwind CSS / Preline UI | Conséquence pour le Blog des Lauréats |
 | --- | --- | --- |
-| Approche de style | Approche utilitaire moderne avec des classes composables | Les pages restent cohérentes et les styles spécifiques sont limités. |
-| Responsive design | Variantes Tailwind par breakpoint | Les articles, profils et écrans d'administration s'adaptent aux tailles d'écran. |
-| Productivité | Classes prêtes à l'emploi et composants pré-conçus | L'équipe gagne du temps sur la réalisation des interfaces courantes. |
-| Accessibilité | Composants Preline UI conçus avec des comportements et structures accessibles | Les menus, formulaires, alertes et modales disposent d'une base ergonomique réutilisable. |
-| Intégration | Fonctionnement naturel avec Blade sans imposer une SPA | Le HTML rendu côté serveur reste simple à maintenir et à tester. |
+| Style | Classes utilitaires composables | Les styles peuvent être construits directement dans les vues sans multiplier les feuilles CSS spécifiques. |
+| Responsive design | Variantes par points de rupture et approche mobile-first | Les pages s'adaptent progressivement aux écrans de téléphone, tablette et ordinateur. |
+| Productivité | Composants et exemples pré-conçus | Les menus, formulaires, cartes et éléments de navigation sont plus rapides à mettre en place. |
+| Cohérence visuelle | Classes et composants réutilisables | Les pages du site gardent une présentation homogène. |
+| Accessibilité | Composants Preline intégrant des comportements utiles au clavier et des attributs adaptés | L'équipe dispose d'une bonne base, qui doit tout de même être vérifiée dans les pages finales. |
+| Intégration | HTML et Blade, avec les ressources frontend gérées par l'outillage du projet | Le site conserve un rendu côté serveur sans imposer une SPA. |
 
-Tailwind CSS prend en charge la composition visuelle et le responsive design.
-Preline UI apporte des composants tels que les menus, formulaires, alertes,
-modales et éléments de navigation. Les composants sont adaptés aux besoins du
-projet plutôt que développés intégralement à chaque écran.
+Tailwind CSS permet de commencer par une mise en page adaptée au mobile puis d'ajouter des règles pour les écrans plus larges. Preline UI accélère la réalisation des composants courants, mais son utilisation ne garantit pas automatiquement une conformité complète aux règles d'accessibilité. Les contrastes, les libellés, la navigation au clavier et le comportement avec un lecteur d'écran doivent être contrôlés.
 
-## 4. Réactivité Frontend (Alpine.js)
+**Choix retenu :** Tailwind CSS assure la composition visuelle et le responsive design ; Preline UI fournit une bibliothèque de composants réutilisables. Les composants seront adaptés à l'identité graphique du Blog des Lauréats et testés sur plusieurs tailles d'écran.
 
-**Alpine.js** est retenu pour les interactions côté client qui ne justifient
-pas l'adoption d'un framework SPA.
+## 5. Réactivité Frontend (Alpine.js)
+
+**Alpine.js** est retenu pour les interactions simples côté navigateur. Il complète Blade sans imposer la structure et la complexité d'une application monopage (SPA).
 
 ### Arguments comparatifs
 
-| Critère | Alpine.js | Conséquence pour le projet |
+| Critère | Alpine.js | Conséquence pour le Blog des Lauréats |
 | --- | --- | --- |
-| Syntaxe | Interactions déclaratives directement dans le HTML | Les comportements sont lisibles dans les vues et proches des éléments concernés. |
-| Légèreté | Bibliothèque ciblée pour les interactions courantes | Le navigateur ne reçoit pas la complexité d'un état global ou d'une SPA. |
-| Intégration | Fonctionnement harmonieux avec Blade et Preline UI | Les menus, modales, filtres et confirmations complètent le rendu serveur. |
-| Outillage | Compilation et configuration limitées | Le démarrage et la maintenance sont plus simples pour l'équipe. |
+| Syntaxe | Attributs déclaratifs directement dans le HTML | Les comportements restent proches des éléments concernés. |
+| Légèreté | Bibliothèque ciblée sur les interactions d'interface | Le projet évite un état global et une architecture frontend lourde pour des besoins simples. |
+| Intégration | Fonctionne avec les vues Blade | Les interactions complètent le HTML généré par Laravel. |
+| Usages | Menus, modales, accordéons, affichage conditionnel et petits filtres | Les pages deviennent plus agréables sans déplacer les règles métier dans le navigateur. |
+| Maintenance | Peu de structure supplémentaire pour des comportements limités | Les interactions restent faciles à localiser et à modifier. |
 
-Alpine.js peut gérer l'ouverture d'un menu, l'affichage d'une modale, un
-filtre d'interface ou la confirmation d'une action. Laravel reste responsable
-des données, des règles métier, de la sécurité et de la persistance.
+Alpine.js peut gérer l'ouverture d'un menu, l'affichage d'une fenêtre modale ou un accordéon. En revanche, Laravel reste responsable de la validation, des autorisations, des règles métier et de l'enregistrement des données. Une vérification côté serveur reste obligatoire, même lorsqu'un contrôle existe dans le navigateur.
 
-## 5. Qualité & Tests Automatisés (TDD)
+**Choix retenu :** Alpine.js est utilisé uniquement lorsque l'interface a besoin d'une interaction dynamique légère. Il ne remplace ni Laravel ni les contrôles de sécurité du backend.
 
-Le projet applique une démarche **TDD (Test-Driven Development)** afin de
-sécuriser chaque incrément de sprint.
+## 6. Développement & Déploiement Mobile (NativePHP for Mobile)
+
+Le projet retient **NativePHP for Mobile** pour préparer une application Android consacrée à la consultation et à la lecture des articles du Blog des Lauréats.
+
+Documentation officielle : <https://nativephp.com/docs/mobile/4/getting-started/introduction>.
+
+### Principe technique
+
+NativePHP for Mobile permet d'exécuter une application PHP/Laravel sur un appareil mobile en intégrant un runtime PHP précompilé dans l'application native. Le package fournit également les mécanismes de communication avec les fonctions natives de la plateforme. La documentation NativePHP décrit un shell natif Android/iOS qui embarque le runtime PHP avec le code de l'application, sans nécessiter un serveur web local sur le téléphone.
+
+Avec son système **EDGE**, NativePHP transforme des composants écrits avec la syntaxe Blade en éléments d'interface natifs. Les écrans mobiles peuvent donc rester dans l'écosystème Laravel et utiliser des composants Blade adaptés au rendu natif.
 
 ### Arguments comparatifs
 
-| Critère | TDD et tests Laravel | Conséquence pour le projet |
+| Critère | NativePHP for Mobile | Conséquence pour le Blog des Lauréats |
 | --- | --- | --- |
-| Détection | Le test précède l'implémentation | Les erreurs sont détectées tôt, avant l'intégration d'une fonctionnalité. |
-| Couverture | Tests unitaires et fonctionnels | Les règles isolées et les parcours HTTP complets sont vérifiés. |
-| Régression | Suite automatisée relancée à chaque évolution | Les changements de publication, d'autorisation ou de recherche sont sécurisés. |
-| Livraison | Validation répétable à chaque sprint | L'équipe dispose d'un signal objectif avant la revue ou la livraison. |
+| Exécution | Runtime PHP intégré à l'application mobile | Le code PHP compatible peut être exécuté sur l'appareil sans serveur PHP local. |
+| Socle applicatif | Intégration avec Laravel | Les modèles, services, validations et règles métier compatibles peuvent être mutualisés avec le projet web. |
+| Interface | Composants EDGE définis avec Blade et rendus en éléments natifs | L'équipe peut conserver la syntaxe Blade tout en créant des écrans adaptés au mobile. |
+| Maintenance | Projet mobile dans l'écosystème PHP/Laravel | La nécessité d'entretenir une seconde stack complète en Flutter ou React Native est réduite. |
+| Périmètre | Écrans limités à la consultation des articles | Le développement se concentre sur la liste des articles, les détails, les catégories et la lecture. |
 
-Le cycle appliqué est :
+### Mutualisation et limites à prévoir
 
-1. **Red** : écrire un test décrivant le comportement attendu et constater son
-   échec.
-2. **Green** : implémenter la solution minimale qui fait réussir le test.
-3. **Refactor** : améliorer le code sans modifier le comportement, puis
-   relancer la suite.
+L'objectif est de **réutiliser au maximum la logique applicative Laravel**, notamment les modèles, les services, les règles de validation et les traitements communs. Il ne faut cependant pas promettre une réutilisation automatique de 100 % du code et de toutes les vues web : une interface web HTML classique et une interface mobile native n'ont pas exactement les mêmes composants. Les écrans mobiles devront être adaptés avec les composants EDGE pris en charge par la version de NativePHP utilisée.
 
-Les scénarios prioritaires sont l'accès aux seuls articles publiés, la
-recherche, le filtrage par catégorie, l'authentification, les autorisations
-d'administration, les transitions de statut et la validation des données.
-Les tests peuvent être écrits avec **PHPUnit** ou **Pest**, tous deux pris en
-charge par l'écosystème Laravel.
+Le site web conserve MySQL comme base centrale. Le téléphone ne doit pas recevoir les identifiants MySQL ni ouvrir une connexion directe à la base distante. Pour afficher les derniers articles publiés, l'application mobile devra communiquer avec le backend du Blog des Lauréats par HTTPS, au moyen d'une interface de lecture contrôlée dans le projet Laravel. Cette communication peut réutiliser le backend existant : elle ne nécessite pas de créer un second projet backend indépendant. Le format et les routes de cette communication devront être définis pendant la conception technique.
 
-Depuis le terminal PowerShell, la suite se lance avec :
+Une consultation hors ligne ne doit pas être considérée comme acquise automatiquement. Si elle devient nécessaire, il faudra prévoir et tester une stratégie de cache ou de synchronisation locale des articles.
+
+### Comparatif avec une stack mobile séparée
+
+Une solution Flutter ou React Native demanderait de développer et maintenir une application mobile distincte, avec ses propres écrans, sa navigation et une couche de communication avec le backend. Pour un périmètre limité à la lecture des articles, NativePHP est choisi afin de rester proche du socle Laravel et de limiter la duplication. Ce choix devra être confirmé par un prototype Android vérifiant la compatibilité des dépendances Laravel utilisées dans le projet.
+
+**Choix retenu :** NativePHP for Mobile est retenu pour le build Android de consultation. Le code métier compatible est mutualisé ; l'interface mobile est adaptée au rendu natif ; les articles publiés sont récupérés de manière sécurisée depuis le backend central.
+
+## 7. Qualité & Tests Automatisés (TDD et Agent IA)
+
+Le projet applique une démarche **TDD (Test-Driven Development)** pour vérifier le comportement attendu avant ou pendant l'implémentation de chaque fonctionnalité.
+
+### Cycle TDD
+
+1. **Red :** écrire un test qui décrit le comportement attendu et vérifier qu'il échoue.
+2. **Green :** écrire le code minimum pour faire réussir le test.
+3. **Refactor :** améliorer le code sans changer le comportement, puis relancer les tests.
+
+### Arguments comparatifs
+
+| Critère | TDD et tests automatisés | Conséquence pour le Blog des Lauréats |
+| --- | --- | --- |
+| Détection | Les tests sont écrits avant l'implémentation | Les erreurs de logique sont détectées tôt. |
+| Couverture | Tests unitaires et fonctionnels | Les petites règles métier et les parcours HTTP sont vérifiés. |
+| Régression | Tests relancés après les modifications | Une évolution ne doit pas casser une fonctionnalité déjà validée. |
+| Livraison | Résultats reproductibles à chaque sprint | L'équipe dispose d'un contrôle avant la revue et la livraison. |
+
+Les scénarios prioritaires sont :
+
+- Afficher uniquement les articles publiés dans l'espace public.
+- Consulter le détail d'un article et filtrer par catégorie.
+- Empêcher un visiteur non autorisé d'accéder à l'administration.
+- Vérifier les règles de validation et les autorisations de publication.
+- Vérifier l'affichage et la récupération des articles dans le parcours mobile.
+
+Laravel prend en charge PHPUnit et peut aussi être utilisé avec Pest. La commande de lancement des tests est :
 
 ```powershell
 php artisan test
 ```
 
-Un sous-ensemble peut être exécuté avec un filtre :
+Pour exécuter un groupe de tests ciblé :
 
 ```powershell
-php artisan test --filter Publication
+php artisan test --filter Article
 ```
 
-Les tests automatisés sont complétés par une recette manuelle des parcours
-principaux et une revue du code.
+### Utilisation de l'Agent IA copilote
 
-## 6. Environnement de Développement
+L'Agent IA est utilisé comme **outil d'assistance au développement**, depuis l'environnement de travail Windows et le terminal PowerShell ou l'éditeur configuré par l'équipe. Il peut aider à :
 
-L'environnement cible est **Windows** avec un terminal **PowerShell**. Il
-réunit les outils nécessaires au développement, à l'exécution, aux tests et au
-versionnement du projet.
+- analyser une demande et proposer un plan d'implémentation ;
+- suggérer une structure Laravel conforme aux conventions du projet ;
+- proposer des tests unitaires ou fonctionnels ;
+- expliquer une erreur et suggérer des pistes de correction ;
+- relire un changement ou repérer des oublis possibles.
+
+L'Agent IA ne remplace pas la décision du développeur. Le code généré doit être relu, adapté au projet et vérifié par les tests automatisés. Les résultats doivent aussi être contrôlés manuellement lorsque le comportement visuel ou mobile est concerné. Aucun mot de passe, jeton, clé API ou autre secret ne doit être transmis à l'agent.
+
+## 8. Environnement de Développement
+
+L'environnement de développement retenu est **Windows**, avec **PowerShell** comme terminal principal. Les outils suivants couvrent le développement web, les tests, la gestion des dépendances et la construction mobile Android.
 
 | Outil | Rôle | Justification |
 | --- | --- | --- |
-| Windows | Système d'exploitation de l'équipe | Fournit l'environnement de travail retenu pour le projet et ses outils. |
-| PowerShell | Terminal et automatisation | Permet d'exécuter les commandes Laravel, PHP, Node.js, Git et les scripts de projet dans un environnement reproductible. |
-| Composer | Gestionnaire de dépendances PHP | Installe Laravel et les bibliothèques backend en respectant les versions déclarées. |
-| Node.js et npm | Gestion des dépendances et ressources frontend | Permet de compiler ou préparer Tailwind CSS, Preline UI et les ressources frontend. |
-| Git | Versionnement distribué | Trace les changements, facilite le travail par branches et permet de revenir sur une version validée. |
-| GitHub CLI (`gh`) | Interaction avec le dépôt distant | Facilite la publication, la gestion des issues et le suivi du travail depuis le terminal. |
+| Windows | Système d'exploitation de l'équipe | Environnement de travail retenu pour le projet. |
+| PowerShell | Terminal de commande | Exécuter les commandes PHP, Composer, Node.js, NativePHP et Git. |
+| PHP | Langage backend et runtime Laravel | Exécuter le code applicatif et les tests. |
+| Composer | Gestionnaire de dépendances PHP | Installer Laravel et les packages, dont NativePHP. |
+| MySQL | Système de gestion de base de données | Stocker les utilisateurs, profils, articles, catégories et statuts. |
+| Node.js et npm | Gestion des ressources frontend | Installer et préparer Tailwind CSS, Preline UI et les ressources JavaScript. |
+| Android Studio | Environnement Android | Installer le SDK, créer un émulateur et préparer le build Android. |
+| Android SDK et Platform Tools | Outils de compilation et de débogage | Construire l'application et communiquer avec un appareil ou un émulateur via ADB. |
+| JDK compatible avec Gradle | Outils Java nécessaires à la chaîne Android | Répondre aux besoins de compilation Android selon les versions installées. |
+| 7-Zip | Outil requis sous Windows par l'environnement NativePHP documenté | Satisfaire une dépendance de l'installation NativePHP for Mobile. |
+| Git | Versionnement du code | Suivre les modifications, travailler par branches et collaborer. |
+| GitHub CLI (`gh`) | Outil complémentaire pour GitHub | Facultatif : gérer les dépôts et les issues depuis PowerShell. |
 
-Les commandes principales sont exécutées depuis la racine du projet ou depuis
-le dossier Laravel concerné :
+La documentation NativePHP Mobile v4 indique notamment PHP 8.3 ou supérieur, Laravel 10 ou supérieur, Android Studio 2024.2.1 ou supérieur et un Android SDK API 29 ou supérieur. Sous Windows, elle indique également l'installation de 7-Zip. La version exacte du JDK doit être compatible avec Gradle et la version Android installée ; elle doit être vérifiée au moment de la configuration.
+
+Quelques commandes courantes depuis la racine du projet Laravel :
 
 ```powershell
 composer install
@@ -157,17 +221,30 @@ php artisan test
 git status
 ```
 
-L'Agent IA copilote peut être utilisé dans cet environnement pour proposer une
-structure, rédiger des tests, expliquer une erreur ou relire un changement.
-Il reste un outil d'assistance : chaque proposition est relue, adaptée aux
-conventions du dépôt et validée par l'exécution des tests. Aucun secret,
-identifiant ou contenu sensible ne doit lui être transmis.
+Pour préparer et lancer l'application NativePHP, après installation et configuration du package conformément à sa documentation :
 
-## Synthèse
+```powershell
+php artisan native:install
+php artisan native:run
+```
 
-Le choix Laravel, MySQL, Tailwind CSS, Preline UI et Alpine.js forme une stack
-cohérente : Laravel et MySQL assurent la structure, la sécurité et la
-cohérence des données ; Tailwind CSS et Preline UI accélèrent la création
-d'interfaces responsive et accessibles ; Alpine.js ajoute uniquement les
-interactions nécessaires ; enfin, TDD et l'outillage Windows/PowerShell
-sécurisent la livraison incrémentale.
+Les exigences et commandes NativePHP pouvant évoluer selon la version, l'équipe doit suivre la documentation correspondant à la version réellement installée.
+
+## Conclusion
+
+La combinaison **Laravel, MySQL, Tailwind CSS, Preline UI et Alpine.js** forme une stack cohérente pour le site web du Blog des Lauréats. Laravel organise les traitements et sécurise les accès ; MySQL garantit la cohérence des données relationnelles ; Tailwind CSS et Preline UI accélèrent la création d'interfaces responsive ; Alpine.js ajoute les interactions légères nécessaires.
+
+Pour le mobile, **NativePHP for Mobile** permet de conserver un socle PHP/Laravel et de produire une application Android avec des interfaces adaptées aux composants natifs. La mutualisation concerne principalement la logique applicative compatible ; les vues mobiles doivent être adaptées et l'accès aux articles centraux doit passer par une communication HTTPS sécurisée avec le backend.
+
+Enfin, le TDD, les tests automatisés, la revue du code et l'utilisation contrôlée de l'Agent IA contribuent à sécuriser les évolutions réalisées au fil des sprints.
+
+## Références documentaires
+
+- Laravel : <https://laravel.com/docs>
+- MySQL 8.4 — InnoDB et ACID : <https://dev.mysql.com/doc/refman/8.4/en/innodb-introduction.html> et <https://dev.mysql.com/doc/refman/8.4/en/mysql-acid.html>
+- Tailwind CSS — Responsive design : <https://tailwindcss.com/docs/responsive-design>
+- Preline UI — Accessibilité : <https://www.preline.co/docs/accessibility.html>
+- Alpine.js : <https://alpinejs.dev/start-here>
+- NativePHP for Mobile v4 — Introduction : <https://nativephp.com/docs/mobile/4/getting-started/introduction>
+- NativePHP for Mobile v4 — EDGE Components : <https://nativephp.com/docs/mobile/4/edge-components/introduction>
+- NativePHP for Mobile v4 — Environnement Android : <https://nativephp.com/docs/mobile/4/getting-started/environment-setup>
