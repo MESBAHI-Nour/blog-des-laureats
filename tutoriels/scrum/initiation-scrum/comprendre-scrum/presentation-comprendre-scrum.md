@@ -6,11 +6,12 @@ paginate: true
 ---
 
 <!-- _class: lead -->
-
+![Logo OFPPT](../../../images/ofppt-logo.png) ![Logo SoliCode](../../../images/solicode-logo.png)
 # Comprendre Agile et Scrum
 
 ### Application à une plateforme de streaming / Films
-
+**Présenté par** : Mesbahi Nour
+**Encadré par** : ES-Sarraj Fouad
 
 ---
 

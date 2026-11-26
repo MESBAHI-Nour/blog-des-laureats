@@ -33,8 +33,12 @@ style: |
 ---
 
 <!-- _class: lead -->
+![Logo OFPPT](../../../images/ofppt-logo.png) ![Logo SoliCode](../../../images/solicode-logo.png)
 
 # Vision Produit & User Stories
+
+**Présenté par** : Mesbahi Nour
+**Encadré par** : ES-Sarraj Fouad
 
 ---
 
